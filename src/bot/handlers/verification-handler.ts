@@ -57,6 +57,42 @@ export class VerificationHandler {
       await this.page.waitForSelector('input[placeholder*="Verification code"], ._1egsyt72', {
         timeout: this.getProxyAwareTimeout(5000),
       })
+
+      // Check if verification code is already filled - ROBUST SAFEGUARD
+      const inputSelectors = [
+        'input[placeholder*="Verification code"]',
+        'input[placeholder*="verification"]',
+        'input[placeholder*="code"]',
+        'input[type="text"]:not([placeholder*="email"])',
+        'input[placeholder*="Verification"]',
+        'input[name*="code"]',
+        'input[id*="code"]'
+      ]
+
+      for (const selector of inputSelectors) {
+        try {
+          const inputElement = await this.page.$(selector)
+          if (inputElement) {
+            const existingValue = await this.page.evaluate((el: any) => el.value || "", inputElement)
+            const isVisible = await this.page.evaluate((el: any) => {
+              const style = window.getComputedStyle(el)
+              return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetWidth > 0
+            }, inputElement)
+
+            logger.debug(`Input check [${selector}]: value="${existingValue}" (${existingValue.length} chars), visible=${isVisible}`)
+
+            if (existingValue && existingValue.length >= 4 && isVisible) {
+              logger.info(`🚫 VERIFICATION CODE ALREADY FILLED (${existingValue.length} chars: "${existingValue}"), BLOCKING GET CODE BUTTON CLICK`)
+              return true // Consider this successful since code is already there
+            }
+          }
+        } catch (error) {
+          // Continue to next selector
+        }
+      }
+
+      logger.debug("No filled verification input found, proceeding with Get code button click")
+
       logger.info("Verification code input and Get code button found")
     } catch (e) {
       logger.warn("Verification code input not found, taking screenshot...")

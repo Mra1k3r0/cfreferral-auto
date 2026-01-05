@@ -75,6 +75,11 @@ export interface Config {
   levelinfBaseUrl: string
   referralCode: string
   navigationTimeout: number
+
+  // Continuous mode settings
+  continuousMode: boolean
+  maxContinuousSessions: number
+  inactivityTimeout: number
 }
 
 // Default configuration
@@ -84,7 +89,7 @@ export const defaultConfig: Config = {
   levelinfPassword: process.env.LEVELINF_PASSWORD || "TempPass123!",
 
   // Proxy settings
-  useProxy: 1, // 0=no proxy, 1=HTTP file, 2=HTTPS file, 3=SOCKS4, 4=SOCKS5, 5=Stable mode
+  useProxy: 0, // 0=no proxy, 1=HTTP file, 2=HTTPS file, 3=SOCKS4, 4=SOCKS5, 5=Stable mode
   proxyFile: "proxy.txt",
 
   // SOCKS proxy sources
@@ -139,7 +144,7 @@ export const defaultConfig: Config = {
   emailCheckInterval: 5000,
 
   // Debug settings
-  debugMode: true,
+  debugMode: false,
   screenshotOnError: true,
 
   // Bot settings
@@ -147,6 +152,11 @@ export const defaultConfig: Config = {
   levelinfBaseUrl: "https://act.playcfl.com/act/a20251031rlr/index.html?code=",
   referralCode: process.env.REFERRAL_CODE || "abbqzbq",
   navigationTimeout: 60000,
+
+  // Continuous mode settings
+  continuousMode: true, // Set to true to automatically restart after each successful registration
+  maxContinuousSessions: 50, // Maximum number of sessions before stopping (0 = unlimited)
+  inactivityTimeout: 300000, // Stop if no activity for 5 minutes (in milliseconds)
 }
 
 // Load configuration with validation

@@ -106,6 +106,15 @@ REFERRAL_CODE=your-referral-code
 export REFERRAL_CODE="your-referral-code"
 ```
 
+#### Continuous Mode (Auto-Restart)
+Enable automatic continuous registration by editing `src/config/index.ts`:
+```typescript
+continuousMode: true,           // Enable auto-restart after each successful registration
+maxContinuousSessions: 50,      // Maximum sessions before stopping (0 = unlimited)
+inactivityTimeout: 300000,      // Stop if no activity for 5 minutes (300000ms)
+```
+
+
 ## Output Files
 
 - `valid.txt` - Successfully created accounts

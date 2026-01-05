@@ -45,6 +45,15 @@ export class CrossfireReferralBot {
     this.sessionPassword = registrationConfig.password
     this.emailService = new EmailService()
 
+    if (this.config.debugMode) {
+      logger.debug("=== BOT INITIALIZATION DEBUG ===")
+      logger.debug(`Email: ${this.currentEmail}`)
+      logger.debug(`Headless: ${this.config.headless}`)
+      logger.debug(`Debug Mode: ${this.config.debugMode}`)
+      logger.debug(`Continuous Mode: ${this.config.continuousMode}`)
+      logger.debug(`Screenshot on Error: ${this.config.screenshotOnError}`)
+    }
+
     logger.debug(`Proxy config check - useProxy: ${this.config.useProxy}, proxyFile: ${this.config.proxyFile}`)
     if (this.config.useProxy && this.config.useProxy > 0) {
       logger.debug(`Initializing proxy manager with type: ${this.config.useProxy}`)
@@ -718,11 +727,14 @@ export class CrossfireReferralBot {
       // Check if we already have a verification code before clicking Get code button
       logger.debug("Checking for existing verification code...")
       const existingCode = await verificationHandler.checkExistingVerificationCode()
+      logger.debug(`Existing code check result: ${existingCode ? `"${existingCode}"` : "none"}`)
+
       if (existingCode) {
-        logger.info("Verification code already available, skipping Get code button click")
+        logger.info(`Verification code already available: "${existingCode}", skipping Get code button click`)
         const codeFilled = await verificationHandler.fillVerificationCode(existingCode)
         if (!codeFilled) return
       } else {
+        logger.info("No existing verification code found, clicking Get code button...")
         // No existing code, click the Get code button
         const codeRequested = await verificationHandler.clickGetCodeButton()
         if (!codeRequested) return
@@ -768,16 +780,8 @@ export class CrossfireReferralBot {
         await delay(2000)
       }
 
-      logger.debug("Verification page stable, waiting for email...")
-
-      const verificationCode = await verificationHandler.waitForVerificationCode()
-      if (!verificationCode) {
-        logger.error("Could not retrieve verification code - stopping process")
-        return
-      }
-
-      const codeFilled = await verificationHandler.fillVerificationCode(verificationCode)
-      if (!codeFilled) return
+      // Verification code has already been filled above, proceed to next steps
+      logger.info("Verification code filled successfully, proceeding to next steps...")
 
       await verificationHandler.handleCountrySelection()
       await verificationHandler.handleAgeVerification()
@@ -1114,14 +1118,19 @@ export class CrossfireReferralBot {
       await this.close()
       logger.debug("Browser cleanup completed - fresh session ready for next run")
 
-      // Force exit to ensure process terminates
-      // Use longer timeout for proxy connections which may have lingering network activity
-      const exitDelay = this.proxyManager?.getCurrentProxy() ? 2000 : 1000
-      setTimeout(() => {
-        logger.debug("Force exiting process...")
-        // Use process.exit(0) for clean exit, don't use SIGTERM as it may not work reliably
-        process.exit(0)
-      }, exitDelay)
+      // Only force exit if not in continuous mode
+      // In continuous mode, control returns to main loop for next session
+      const isContinuousMode = this.config?.continuousMode || false
+      if (!isContinuousMode) {
+        // Force exit to ensure process terminates
+        // Use longer timeout for proxy connections which may have lingering network activity
+        const exitDelay = this.proxyManager?.getCurrentProxy() ? 2000 : 1000
+        setTimeout(() => {
+          logger.debug("Force exiting process...")
+          // Use process.exit(0) for clean exit, don't use SIGTERM as it may not work reliably
+          process.exit(0)
+        }, exitDelay)
+      }
     }
   }
 }
