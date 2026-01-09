@@ -176,8 +176,9 @@ export class CrossfireReferralBot {
       try {
         fs.accessSync(browserPath, fs.constants.F_OK)
         const browserName = this.getBrowserName(browserPath)
-        const version = this.getBrowserVersion(browserPath)
-        logger.info(`Found browser: ${browserName}${version ? ` v${version}` : ""}`)
+        const version = await this.getBrowserVersion(browserPath)
+        const versionInfo = version ? ` v${version}` : ` (version unknown)`
+        logger.info(`Found browser: ${browserName}${versionInfo}`)
         return browserPath
       } catch {}
     }
@@ -211,27 +212,85 @@ export class CrossfireReferralBot {
     return "Browser"
   }
 
-  private getBrowserVersion(path: string): string | null {
-    try {
-      const { execSync } = require("child_process")
-      const isWindows = process.platform === "win32"
+  private isAndroid(): boolean {
+    // Multiple ways to detect Android/Termux
+    return !!(
+      process.env.PREFIX?.includes("com.termux") ||
+      process.env.ANDROID_DATA ||
+      process.platform === "android" ||
+      process.env.SHELL?.includes("termux")
+    )
+  }
 
-      if (isWindows && path.includes("chrome.exe")) {
-        const result = execSync(`wmic datafile where name="${path.replace(/\\/g, "\\\\")}" get Version /value 2>nul`, {
-          encoding: "utf8",
-          stdio: ["pipe", "pipe", "pipe"],
-        })
+  private async getBrowserVersion(path: string): Promise<string | null> {
+    const { execSync, spawn } = require("child_process")
+    const isAndroid = this.isAndroid()
+    const execOpts = { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], timeout: 2000 }
+
+    // Windows specific
+    if (process.platform === "win32" && path.includes("chrome.exe")) {
+      try {
+        const result = execSync(
+          `wmic datafile where name="${path.replace(/\\/g, "\\\\")}" get Version /value 2>nul`,
+          execOpts,
+        )
         const match = result.match(/Version=(.+)/)
-        if (match) return match[1].trim().split(".").slice(0, 3).join(".")
-      } else if (!isWindows) {
-        const result = execSync(`"${path}" --version 2>/dev/null`, {
-          encoding: "utf8",
-          stdio: ["pipe", "pipe", "pipe"],
-        })
-        const match = result.match(/(\d+\.\d+\.\d+)/)
+        return match ? match[1].trim().split(".").slice(0, 3).join(".") : null
+      } catch {
+        return null
+      }
+    }
+
+    // Unix-like systems (Linux, Android/Termux)
+    const extractVersion = (output: string): string | null => {
+      const patterns = [
+        /(\d+\.\d+\.\d+[\.\d]*)/,
+        /version\s+(\d+\.\d+\.\d+)/i,
+        /chromium\s+(\d+\.\d+\.\d+)/i,
+        /chrome\s+(\d+\.\d+\.\d+)/i,
+      ]
+      for (const pattern of patterns) {
+        const match = output.match(pattern)
         if (match) return match[1]
       }
+      return null
+    }
+
+    // Try execSync approaches first (fastest)
+    const commands = [
+      `"${path}" --version 2>/dev/null`,
+      `"${path}" -version 2>/dev/null`,
+      isAndroid ? `pkg info chromium-browser 2>/dev/null | grep Version` : null,
+      isAndroid ? `chromium-browser --version 2>/dev/null` : null,
+    ].filter(Boolean)
+
+    for (const cmd of commands) {
+      try {
+        const result = execSync(cmd, execOpts)
+        const version = extractVersion(result)
+        if (version) return version
+      } catch {}
+    }
+
+    // Try spawn approach (better for some environments)
+    try {
+      const output = await new Promise<string>((resolve, reject) => {
+        const child = spawn(path, ["--version"], { stdio: ["ignore", "pipe", "pipe"], timeout: 2000 })
+        let data = ""
+        child.stdout.on("data", (chunk: Buffer) => (data += chunk))
+        child.stderr.on("data", (chunk: Buffer) => (data += chunk))
+        child.on("close", (code: number | null) => (code === 0 ? resolve(data) : reject()))
+        child.on("error", reject)
+      })
+      return extractVersion(output)
     } catch {}
+
+    // Final fallback: file-based extraction
+    try {
+      const result = execSync(`strings "${path}" 2>/dev/null | grep -E "[0-9]+\\.[0-9]+\\.[0-9]+" | head -1`, execOpts)
+      return extractVersion(result.trim())
+    } catch {}
+
     return null
   }
 
@@ -1099,23 +1158,21 @@ export class CrossfireReferralBot {
 
   private async performDirectConnectionSecurityAudit(): Promise<void> {
     try {
-      logger.debug("🔍 Performing direct connection security audit...")
+      logger.debug("🔍 Performing enhanced connection security audit...")
 
       const targetDomain = "act.playcfl.com"
-      const targetPort = 443
 
-      // Establish secure connection and get security metrics
-      const securityMetrics = await this.secureConnectionManager!.establishSecureConnection(targetDomain, targetPort, {
-        useTls: true,
-        timeout: 15000,
-      })
+      // Use enhanced audit that detects connection method
+      const auditResult = await this.secureConnectionManager!.performEnhancedSecurityAudit(
+        targetDomain,
+        this.currentWorkingProxy,
+      )
 
-      // Calculate security score based on metrics
-      let securityScore = securityMetrics.securityScore
+      const { connectionMethod, securityMetrics, adjustedRiskLevel } = auditResult
       const vulnerabilities: string[] = []
 
       // Check for common security issues
-      if (securityScore < 70) {
+      if (securityMetrics.securityScore < 70) {
         vulnerabilities.push("Low security score detected")
       }
 
@@ -1139,13 +1196,23 @@ export class CrossfireReferralBot {
         vulnerabilities.push(...securityMetrics.vulnerabilities)
       }
 
-      let riskLevel: string
-      if (securityScore >= 90) riskLevel = "Low"
-      else if (securityScore >= 70) riskLevel = "Medium"
-      else if (securityScore >= 50) riskLevel = "High"
-      else riskLevel = "Critical"
+      // Add connection method info
+      const methodEmojis: Record<string, string> = {
+        direct: "🏠",
+        proxy: "🌐",
+        vpn: "🔒",
+        unknown: "❓",
+      }
+      const methodEmoji = methodEmojis[connectionMethod.method] || "❓"
 
-      logger.debug(`🔒 Direct Connection Security Audit: Score ${securityScore}/100 (${riskLevel} risk)`)
+      logger.info(
+        `${methodEmoji} Connection Method: ${connectionMethod.method.toUpperCase()} (${connectionMethod.confidence}% confidence)`,
+      )
+      logger.info(`🔒 Security Audit: Score ${securityMetrics.securityScore}/100 (${adjustedRiskLevel} risk)`)
+
+      if (connectionMethod.details) {
+        logger.debug(`📋 Details: ${connectionMethod.details}`)
+      }
 
       if (vulnerabilities.length > 0) {
         logger.warn(`⚠️  Security issues: ${vulnerabilities.join(", ")}`)
@@ -1157,8 +1224,17 @@ export class CrossfireReferralBot {
         logger.debug(`📜 SSL Certificate: ${securityMetrics.certificateInfo.subject}`)
         logger.debug(`📅 Expires: ${securityMetrics.certificateInfo.validTo.toDateString()}`)
       }
+
+      // Log additional insights based on connection method
+      if (connectionMethod.method === "proxy") {
+        logger.info("ℹ️  Proxy detected - security analysis reflects proxy exit node, not local connection")
+      } else if (connectionMethod.method === "vpn") {
+        logger.info("ℹ️  VPN detected - security analysis reflects VPN exit node, not local connection")
+      } else if (connectionMethod.method === "direct") {
+        logger.info("ℹ️  Direct connection - security analysis reflects your local network")
+      }
     } catch (error) {
-      logger.warn(`⚠️  Direct connection security audit failed: ${error}`)
+      logger.warn(`⚠️  Enhanced connection security audit failed: ${error}`)
     }
   }
 

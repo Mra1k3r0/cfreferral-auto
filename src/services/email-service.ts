@@ -3,20 +3,6 @@ import { logger } from "../utils/logger"
 import { generateHumanUsername } from "../utils/helpers"
 import type { TempEmailAccount, GetEmailListResponse } from "../types"
 
-const GUERRILLAMAIL_DOMAINS = [
-  "guerrillamail.com",
-  "guerrillamailblock.com",
-  "guerrillamail.net",
-  "guerrillamail.org",
-  "guerrillamail.biz",
-  "guerrillamail.de",
-  "guerrillamail.info",
-  "pokemail.net",
-  "spam4.me",
-  "grr.la",
-  "sharklasers.com",
-]
-
 /**
  * EmailService - Handles temporary email creation and verification code retrieval
  */
@@ -27,22 +13,11 @@ export class EmailService {
 
   private getRequestHeaders(): Record<string, string> {
     return {
-      accept: "*/*",
-      "accept-encoding": "gzip, deflate, br, zstd",
-      "accept-language": "en-US,en;q=0.9",
+      accept: "application/json, text/plain, */*",
       "content-type": "application/x-www-form-urlencoded",
-      origin: "https://mehmetkahya0.github.io",
-      referer: "https://mehmetkahya0.github.io/",
-      "sec-ch-ua": '"Google Chrome";v="143", "Chromium";v="143", "Not A(Brand";v="24"',
-      "sec-ch-ua-mobile": "?1",
-      "sec-ch-ua-platform": '"Android"',
       "user-agent":
-        "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     }
-  }
-
-  private getRandomDomain(): string {
-    return GUERRILLAMAIL_DOMAINS[Math.floor(Math.random() * GUERRILLAMAIL_DOMAINS.length)]
   }
 
   /**
@@ -54,6 +29,7 @@ export class EmailService {
     logger.info("📧 Creating temporary email account...")
 
     const username = generateHumanUsername()
+
     const url = `${this.baseUrl}/ajax.php?f=set_email_user`
     const formData = new URLSearchParams()
     formData.append("email_user", username)
@@ -69,10 +45,10 @@ export class EmailService {
 
       if (account.email_addr) {
         this.tempEmailAccount = account
-        // Extract domain from email address
+        // Extract domain from email address (API decides the domain)
         const emailParts = account.email_addr.split("@")
         this.currentDomain = emailParts.length > 1 ? emailParts[1] : "guerrillamail.com"
-        logger.success(`Temp email created: ${account.email_addr}`)
+        logger.info(`✅ Temp email created: ${account.email_addr}`)
         return account
       } else {
         throw new Error("Failed to create temp email account - invalid response")

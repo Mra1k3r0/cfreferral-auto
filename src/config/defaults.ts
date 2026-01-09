@@ -19,18 +19,12 @@ export const defaultConfig: Config = {
   socks4Urls: ["https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks4.txt"],
 
   /** PROXY MANAGER SETTINGS */
-  proxyTestCount: 35,
+  proxyTestCount: 10, // <= Reduced to avoid rate limits
   proxyTimeout: 15000,
-  proxyMaxConcurrentTests: 20,
-  proxyKeepAliveEnabled: true,
-  proxyKeepAliveInterval: 10000,
-  proxyKeepAliveUrls: [
-    "https://8.8.8.8",
-    "https://1.1.1.1",
-    "https://208.67.222.222",
-    "https://8.8.4.4",
-    "https://httpbin.org/ip",
-  ],
+  proxyMaxConcurrentTests: 5, // <= Reduced to avoid rate limits
+  proxyKeepAliveEnabled: false, // <= Disable to avoid 429 errors
+  proxyKeepAliveInterval: 120000, // <= 2 minutes if enabled
+  proxyKeepAliveUrls: ["https://1.1.1.1"],
 
   /** SECURITY CONFIGURATION */
   enableClientCertificates: false, // <= Enable client certificate authentication
@@ -49,7 +43,7 @@ export const defaultConfig: Config = {
 
   /** LOGGER CONFIGURATION */
   logLevel: 2, // <= INFO level
-  enableFileLogging: false,
+  enableFileLogging: true,
   logFilePath: "logs/cfreferral.log",
   enableLogColors: true,
 

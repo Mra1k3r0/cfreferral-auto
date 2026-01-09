@@ -439,7 +439,11 @@ export class QuantumProxyManager {
     let agent: any
 
     if (proxy.protocol === "socks4" || proxy.protocol === "socks5") {
-      const socksUrl = `${proxy.protocol}://${proxy.host}:${proxy.port}`
+      let socksUrl = `${proxy.protocol}://${proxy.host}:${proxy.port}`
+      // Add authentication if username and password are provided
+      if (proxy.username && proxy.password) {
+        socksUrl = `${proxy.protocol}://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`
+      }
       agent = new SocksProxyAgent(socksUrl)
     }
 

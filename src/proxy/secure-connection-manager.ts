@@ -584,6 +584,178 @@ export class SecureConnectionManager {
   }
 
   /**
+   * Detect if connection is going through proxy/VPN
+   */
+  async detectConnectionMethod(proxyConfig?: any): Promise<{
+    method: "direct" | "proxy" | "vpn" | "unknown"
+    confidence: number
+    details: string
+  }> {
+    try {
+      // Check if we have proxy configuration
+      if (proxyConfig && proxyConfig.host) {
+        return {
+          method: "proxy",
+          confidence: 95,
+          details: `Proxy detected: ${proxyConfig.host}:${proxyConfig.port}`,
+        }
+      }
+
+      // Try to detect VPN by checking local IP vs external IP
+      const localIPs = this.getLocalIPs()
+      const externalIP = await this.getExternalIP()
+
+      // If external IP is not in local network ranges, likely VPN/proxy
+      const isLocalNetwork = this.isLocalNetworkIP(externalIP)
+
+      if (!isLocalNetwork && localIPs.length > 0) {
+        // Check if external IP differs significantly from local network
+        const localNetwork = this.getNetworkRange(localIPs[0])
+        const externalNetwork = this.getNetworkRange(externalIP)
+
+        if (localNetwork !== externalNetwork) {
+          return {
+            method: "vpn",
+            confidence: 85,
+            details: `VPN detected: local ${localNetwork}, external ${externalNetwork}`,
+          }
+        }
+      }
+
+      // Check for common VPN/proxy indicators
+      if (await this.detectVPNIndicators()) {
+        return {
+          method: "vpn",
+          confidence: 75,
+          details: "VPN indicators detected",
+        }
+      }
+
+      return {
+        method: "direct",
+        confidence: 90,
+        details: "No proxy/VPN indicators detected",
+      }
+    } catch (error) {
+      return {
+        method: "unknown",
+        confidence: 0,
+        details: `Detection failed: ${error}`,
+      }
+    }
+  }
+
+  private getLocalIPs(): string[] {
+    const interfaces = require("os").networkInterfaces()
+    const ips: string[] = []
+
+    for (const iface of Object.values(interfaces) as any[]) {
+      if (iface) {
+        for (const addr of iface) {
+          if (addr.family === "IPv4" && !addr.internal) {
+            ips.push(addr.address)
+          }
+        }
+      }
+    }
+    return ips
+  }
+
+  private async getExternalIP(): Promise<string> {
+    try {
+      const response = await axios.get("https://api.ipify.org?format=json", { timeout: 5000 })
+      return response.data.ip
+    } catch (error) {
+      // Fallback to httpbin
+      try {
+        const response = await axios.get("https://httpbin.org/ip", { timeout: 5000 })
+        return response.data.origin
+      } catch (fallbackError) {
+        throw new Error("Could not determine external IP")
+      }
+    }
+  }
+
+  private isLocalNetworkIP(ip: string): boolean {
+    const parts = ip.split(".")
+    const first = parseInt(parts[0])
+    const second = parseInt(parts[1])
+
+    // Private IP ranges
+    return (
+      first === 10 ||
+      (first === 172 && second >= 16 && second <= 31) ||
+      (first === 192 && second === 168) ||
+      first === 127 // localhost
+    )
+  }
+
+  private async detectVPNIndicators(): Promise<boolean> {
+    try {
+      // Check for common VPN DNS servers
+      const dnsServers = ["8.8.8.8", "1.1.1.1", "208.67.222.222"] // Common public DNS
+      // This is a simplified check - in practice you'd check more indicators
+      return false // Placeholder
+    } catch (error) {
+      return false
+    }
+  }
+
+  /**
+   * Enhanced security audit that considers connection method
+   */
+  async performEnhancedSecurityAudit(
+    targetHost: string,
+    proxyConfig?: any,
+  ): Promise<{
+    connectionMethod: any
+    securityMetrics: SecureConnectionMetrics
+    adjustedRiskLevel: string
+  }> {
+    const connectionMethod = await this.detectConnectionMethod(proxyConfig)
+    const securityMetrics = await this.establishSecureConnection(targetHost, 443, {
+      useTls: true,
+      timeout: 15000,
+    })
+
+    // Adjust risk assessment based on connection method
+    let adjustedScore = securityMetrics.securityScore
+    let methodMultiplier = 1.0
+
+    switch (connectionMethod.method) {
+      case "direct":
+        methodMultiplier = 1.0 // Baseline
+        break
+      case "proxy":
+        methodMultiplier = 0.9 // Slight penalty for proxy interception
+        break
+      case "vpn":
+        methodMultiplier = 0.95 // Minor penalty for VPN overhead
+        break
+      case "unknown":
+        methodMultiplier = 0.8 // Higher penalty for uncertainty
+        break
+    }
+
+    adjustedScore = Math.round(adjustedScore * methodMultiplier)
+
+    let adjustedRiskLevel: string
+    if (adjustedScore >= 90) adjustedRiskLevel = "Low"
+    else if (adjustedScore >= 70) adjustedRiskLevel = "Medium"
+    else if (adjustedScore >= 50) adjustedRiskLevel = "High"
+    else adjustedRiskLevel = "Critical"
+
+    logger.debug(`🔍 Connection Method: ${connectionMethod.method} (${connectionMethod.confidence}% confidence)`)
+    logger.debug(`📊 Security Score: ${securityMetrics.securityScore}/100 → ${adjustedScore}/100 (adjusted)`)
+
+    return {
+      connectionMethod,
+      securityMetrics,
+      adjustedRiskLevel,
+    }
+  }
+
+  /**
    * Log current security status and risk assessment
    */
   private logSecurityStatus(): void {

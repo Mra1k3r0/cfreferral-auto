@@ -2,7 +2,7 @@
 
 Automated Crossfire Legends account registration with email verification.
 
-[![](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/mra1k3r0/cflreferral-auto/releases)
+[![](https://img.shields.io/badge/version-1.0.5-blue.svg)](https://github.com/mra1k3r0/cflreferral-auto/releases)
 
 ## Table of Contents
 
