@@ -47,28 +47,44 @@ export function generateHumanUsername(): string {
 }
 
 /**
- * Generates secure random password with mixed characters
- * @returns Password string (8-10 characters) with uppercase, lowercase, numbers, and symbols
+ * Generates secure random password meeting Crossfire Legends requirements
+ * @returns Password string (8-20 characters) with at least two character groups: letters, digits, special symbols (@#$%^&*~:)
  */
 export function generateSecurePassword(): string {
-  const length = Math.floor(Math.random() * 3) + 8
+  const length = Math.floor(Math.random() * 13) + 8 // 8-20 characters
   const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
   const lowercase = "abcdefghijklmnopqrstuvwxyz"
   const numbers = "0123456789"
-  const symbols = "!@#$%^&*()_+-=[]{}|;:,.<>?"
+  const symbols = "@#$%^&*~:)" // Only valid symbols for Crossfire Legends
 
-  const password = [
-    uppercase[Math.floor(Math.random() * uppercase.length)],
-    lowercase[Math.floor(Math.random() * lowercase.length)],
-    numbers[Math.floor(Math.random() * numbers.length)],
-    symbols[Math.floor(Math.random() * symbols.length)],
+  // Ensure at least 2 groups are used
+  const requiredGroups = Math.floor(Math.random() * 3) + 2 // 2-4 groups
+  const availableGroups = [
+    { name: 'upper', chars: uppercase },
+    { name: 'lower', chars: lowercase },
+    { name: 'digits', chars: numbers },
+    { name: 'symbols', chars: symbols }
   ]
 
-  const allChars = uppercase + lowercase + numbers + symbols
-  for (let i = 4; i < length; i++) {
-    password.push(allChars[Math.floor(Math.random() * allChars.length)])
+  // Randomly select required number of groups
+  const selectedGroups = availableGroups
+    .sort(() => Math.random() - 0.5)
+    .slice(0, requiredGroups)
+
+  // Start with one character from each required group
+  const password: string[] = []
+  for (const group of selectedGroups) {
+    const char = group.chars[Math.floor(Math.random() * group.chars.length)]
+    password.push(char)
   }
 
+  // Fill remaining length with any character from selected groups only
+  const allSelectedChars = selectedGroups.map(g => g.chars).join('')
+  for (let i = password.length; i < length; i++) {
+    password.push(allSelectedChars[Math.floor(Math.random() * allSelectedChars.length)])
+  }
+
+  // Shuffle the password
   for (let i = password.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[password[i], password[j]] = [password[j], password[i]]
@@ -94,7 +110,7 @@ export function saveSuccessfulAccount(email: string, password: string): void {
     const existingContent = fs.readFileSync(validFilePath, "utf-8")
 
     if (existingContent.includes(`${email}|`)) {
-      logger.info(`ℹ️  Account ${email} already exists in valid.txt`)
+      logger.info(`Account ${email} already exists in valid.txt`)
       return
     }
 

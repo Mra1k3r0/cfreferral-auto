@@ -3,7 +3,7 @@ import * as net from "net"
 import * as fs from "fs"
 import * as dns from "dns"
 import axios, { type AxiosInstance } from "axios"
-import { logger } from "../utils/logger"
+import { logger, colors } from "../utils/logger"
 import type { SecurityConfig, CertificateInfo, NetworkSecurity, SecureConnectionMetrics } from "../types"
 
 export class SecureConnectionManager {
@@ -40,19 +40,19 @@ export class SecureConnectionManager {
   }
 
   private async initializeSecurity(): Promise<void> {
-    logger.debug("🔐 Initializing secure connection manager...")
+    logger.debug("Initializing secure connection manager...")
 
     if (this.securityConfig.enableClientCertificates) {
       await this.loadClientCertificates()
-      logger.debug("🔐 Client certificates enabled")
+      logger.debug("Client certificates enabled")
     } else {
-      logger.debug("ℹ️  Client certificates disabled")
+      logger.debug("Client certificates disabled")
     }
 
     await this.initializeTlsFingerprints()
     await this.validateSecurityConfig()
 
-    logger.info("🔐 Secure connection manager initialized successfully")
+    logger.info("Secure connection manager initialized successfully")
 
     // Log current security status and risk assessment
     this.logSecurityStatus()
@@ -76,7 +76,7 @@ export class SecureConnectionManager {
         await fs.promises.access(this.securityConfig.caCertificatePath, fs.constants.R_OK)
       }
 
-      logger.success("🔐 Client certificates loaded and validated successfully")
+      logger.success("Client certificates loaded and validated successfully")
     } catch (error: any) {
       logger.warn(`Client certificate files not accessible: ${error.message}`)
       logger.debug("Disabling client certificates due to file access issues")
@@ -154,9 +154,9 @@ export class SecureConnectionManager {
             securityArgs.push(`--client-certificate-ca=${this.securityConfig.caCertificatePath}`)
           }
 
-          logger.info("🔐 Client certificates configured for Puppeteer")
+          logger.info("Client certificates configured for Puppeteer")
         } else {
-          logger.debug("🔐 Client certificate files not found, skipping certificate configuration")
+          logger.debug("Client certificate files not found, skipping certificate configuration")
         }
       } catch (error) {
         logger.warn(`Client certificate validation failed: ${error}`)
@@ -170,7 +170,7 @@ export class SecureConnectionManager {
     // Only set options.args if we have security arguments
     if (securityArgs.length > 0) {
       options.args = securityArgs
-      logger.debug(`🔐 Prepared ${securityArgs.length} security arguments for browser launch`)
+      logger.debug(`Prepared ${securityArgs.length} security arguments for browser launch`)
     }
 
     return options
@@ -219,10 +219,10 @@ export class SecureConnectionManager {
 
       this.securityMetrics.set(connectionKey, metrics)
 
-      logger.info(`Secure connection established - Security Score: ${securityScore}/100`)
+      logger.info(`Secure connection established - Security Score: ${colors.green(`${securityScore}/100`)}`)
 
       if (securityScore < 70) {
-        logger.warn(`Low security score (${securityScore}) - ${vulnerabilities.length} vulnerabilities detected`)
+        logger.warn(colors.red(`Low security score (${securityScore}) - ${vulnerabilities.length} vulnerabilities detected`))
       }
 
       return metrics
@@ -601,40 +601,12 @@ export class SecureConnectionManager {
         }
       }
 
-      // Try to detect VPN by checking local IP vs external IP
-      const localIPs = this.getLocalIPs()
-      const externalIP = await this.getExternalIP()
-
-      // If external IP is not in local network ranges, likely VPN/proxy
-      const isLocalNetwork = this.isLocalNetworkIP(externalIP)
-
-      if (!isLocalNetwork && localIPs.length > 0) {
-        // Check if external IP differs significantly from local network
-        const localNetwork = this.getNetworkRange(localIPs[0])
-        const externalNetwork = this.getNetworkRange(externalIP)
-
-        if (localNetwork !== externalNetwork) {
-          return {
-            method: "vpn",
-            confidence: 85,
-            details: `VPN detected: local ${localNetwork}, external ${externalNetwork}`,
-          }
-        }
-      }
-
-      // Check for common VPN/proxy indicators
-      if (await this.detectVPNIndicators()) {
-        return {
-          method: "vpn",
-          confidence: 75,
-          details: "VPN indicators detected",
-        }
-      }
-
+      // Basic check: if external IP differs from local network, assume direct connection
+      // Don't try to detect VPN as it's unreliable and often false positive
       return {
         method: "direct",
         confidence: 90,
-        details: "No proxy/VPN indicators detected",
+        details: "Direct connection detected",
       }
     } catch (error) {
       return {
@@ -645,61 +617,8 @@ export class SecureConnectionManager {
     }
   }
 
-  private getLocalIPs(): string[] {
-    const interfaces = require("os").networkInterfaces()
-    const ips: string[] = []
 
-    for (const iface of Object.values(interfaces) as any[]) {
-      if (iface) {
-        for (const addr of iface) {
-          if (addr.family === "IPv4" && !addr.internal) {
-            ips.push(addr.address)
-          }
-        }
-      }
-    }
-    return ips
-  }
 
-  private async getExternalIP(): Promise<string> {
-    try {
-      const response = await axios.get("https://api.ipify.org?format=json", { timeout: 5000 })
-      return response.data.ip
-    } catch (error) {
-      // Fallback to httpbin
-      try {
-        const response = await axios.get("https://httpbin.org/ip", { timeout: 5000 })
-        return response.data.origin
-      } catch (fallbackError) {
-        throw new Error("Could not determine external IP")
-      }
-    }
-  }
-
-  private isLocalNetworkIP(ip: string): boolean {
-    const parts = ip.split(".")
-    const first = parseInt(parts[0])
-    const second = parseInt(parts[1])
-
-    // Private IP ranges
-    return (
-      first === 10 ||
-      (first === 172 && second >= 16 && second <= 31) ||
-      (first === 192 && second === 168) ||
-      first === 127 // localhost
-    )
-  }
-
-  private async detectVPNIndicators(): Promise<boolean> {
-    try {
-      // Check for common VPN DNS servers
-      const dnsServers = ["8.8.8.8", "1.1.1.1", "208.67.222.222"] // Common public DNS
-      // This is a simplified check - in practice you'd check more indicators
-      return false // Placeholder
-    } catch (error) {
-      return false
-    }
-  }
 
   /**
    * Enhanced security audit that considers connection method
@@ -745,7 +664,7 @@ export class SecureConnectionManager {
     else if (adjustedScore >= 50) adjustedRiskLevel = "High"
     else adjustedRiskLevel = "Critical"
 
-    logger.debug(`🔍 Connection Method: ${connectionMethod.method} (${connectionMethod.confidence}% confidence)`)
+    logger.debug(`Connection Method: ${connectionMethod.method} (${connectionMethod.confidence}% confidence)`)
     logger.debug(`📊 Security Score: ${securityMetrics.securityScore}/100 → ${adjustedScore}/100 (adjusted)`)
 
     return {
@@ -779,10 +698,10 @@ export class SecureConnectionManager {
     const blockedCount = this.securityConfig.blockedNetworks.length
     const allowedCount = this.securityConfig.allowedNetworks.length
 
-    logger.debug(`🛡️  Security Level: ${securityLevel} | Features: ${enabledFeatures.join(", ")}`)
-    logger.debug(`🌐 Network Security: ${allowedCount} allowed networks, ${blockedCount} blocked networks`)
+    logger.debug(`Security Level: ${securityLevel} | Features: ${enabledFeatures.join(", ")}`)
+    logger.debug(`Network Security: ${allowedCount} allowed networks, ${blockedCount} blocked networks`)
     logger.debug(
-      `🔒 TLS Security: Enforcing ${this.securityConfig.minTlsVersion} to ${this.securityConfig.maxTlsVersion}`,
+      `TLS Security: Enforcing ${this.securityConfig.minTlsVersion} to ${this.securityConfig.maxTlsVersion}`,
     )
 
     // Assess overall risk level
@@ -791,7 +710,7 @@ export class SecureConnectionManager {
     if (!this.securityConfig.enableCertificatePinning) riskLevel = "HIGH"
 
     logger.debug(
-      `⚠️  Risk Assessment: ${riskLevel} | Certificate Pinning: ${this.securityConfig.enableCertificatePinning ? "ENABLED" : "DISABLED"}`,
+      `Risk Assessment: ${riskLevel} | Certificate Pinning: ${this.securityConfig.enableCertificatePinning ? "ENABLED" : "DISABLED"}`,
     )
   }
 

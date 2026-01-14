@@ -12,7 +12,7 @@ import * as fs from "fs"
 import * as path from "path"
 import type { Page } from "puppeteer-core"
 import { delay, randomDelay } from "../../utils/helpers"
-import { logger } from "../../utils/logger"
+import { logger, colors } from "../../utils/logger"
 import type ProxyManager from "../../proxy/proxy-manager"
 import type { EmailService } from "../../services/email-service"
 
@@ -69,7 +69,7 @@ export class VerificationHandler {
   async clickGetCodeButton(): Promise<boolean> {
     // Prevent clicking Get code button multiple times in the same session
     if (this.hasRequestedCode) {
-      logger.info("🚫 Get code button already clicked this session, preventing duplicate clicks")
+      logger.info("Get code button already clicked this session, preventing duplicate clicks")
       return true // Return true to indicate success (we don't need to click again)
     }
 
@@ -93,7 +93,7 @@ export class VerificationHandler {
 
             if (existingValue && existingValue.length >= 4 && isVisible) {
               logger.info(
-                `🚫 VERIFICATION CODE ALREADY FILLED (${existingValue.length} chars: "${existingValue}"), BLOCKING GET CODE BUTTON CLICK`,
+                `VERIFICATION CODE ALREADY FILLED (${existingValue.length} chars: "${existingValue}"), BLOCKING GET CODE BUTTON CLICK`,
               )
               return true
             }
@@ -131,7 +131,7 @@ export class VerificationHandler {
             }, button)
 
             if (isAlreadyClicked) {
-              logger.info(`🚫 "Get code" button already clicked, skipping to prevent persistent clicking`)
+              logger.info(`"Get code" button already clicked, skipping to prevent persistent clicking`)
               return true
             }
 
@@ -143,7 +143,7 @@ export class VerificationHandler {
             }, button)
 
             await button.click()
-            logger.info(`Clicked "Get code" button: ${selector}`)
+            logger.info(`Clicked "Get code" button: ${colors.cyan(selector)}`)
             this.hasRequestedCode = true // Mark that we've requested a code this session
 
             // Set timeout to automatically reset hasRequestedCode if no code is received within 5 minutes
@@ -212,7 +212,7 @@ export class VerificationHandler {
         }, button)
 
         if (isAlreadyClicked) {
-          logger.info(`🚫 "Get code" button already clicked (fallback), skipping to prevent persistent clicking`)
+          logger.info(`"Get code" button already clicked (fallback), skipping to prevent persistent clicking`)
           return true
         }
 
@@ -264,7 +264,7 @@ export class VerificationHandler {
    * @returns Promise<string | null> - verification code or null if not received
    */
   async waitForVerificationCode(): Promise<string | null> {
-    logger.info("STEP 4: Waiting for verification code...")
+    colors.stepHeader(4, "Waiting for verification code")
 
     const originalProxySetting = this.config.useProxy
     if (this.config.useProxy === 5) {
@@ -297,13 +297,13 @@ export class VerificationHandler {
     const maxWaitTime = 120000 // 2 minutes max
     let checkInterval = 1000 // Start with 1s checks
 
-    logger.info("📧 Waiting for verification email...")
+    logger.info("Waiting for verification email...")
 
     while (Date.now() - startTime < maxWaitTime) {
       const code = await this.emailService.getVerificationCode()
       if (code) {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
-        logger.success(`📧 Email received in ${elapsed}s`)
+        logger.success(`Email received in ${elapsed}s`)
         this.hasRequestedCode = false
         return code
       }
@@ -316,7 +316,7 @@ export class VerificationHandler {
       }
     }
 
-    logger.warn("📧 Email not received within 2 minutes")
+    logger.warn("Email not received within 2 minutes")
     return null
   }
 
@@ -375,7 +375,7 @@ export class VerificationHandler {
    */
   async fillVerificationCode(verificationCode: string): Promise<boolean> {
     const codeSelectors = [
-      'input[placeholder*="Verification code"]', // ✅ WORKING SELECTOR - Successfully filled verification code
+          'input[placeholder*="Verification code"]', // WORKING SELECTOR - Successfully filled verification code
     ]
 
     for (const selector of codeSelectors) {
@@ -389,7 +389,7 @@ export class VerificationHandler {
           logger.success(`Filled verification code: ${verificationCode}`)
 
           const enteredValue = await this.page.evaluate((el) => (el as any).value, input)
-          logger.info(`Verification code in field: "${enteredValue}"`)
+          logger.info(`Verification code in field: "${colors.green(enteredValue)}"`)
           return true
         }
       } catch (e) {
@@ -408,7 +408,7 @@ export class VerificationHandler {
    * @returns Promise<boolean> - true if country selection completed
    */
   async handleCountrySelection(): Promise<boolean> {
-    logger.info("STEP 5: Checking for country/region selection...")
+    colors.stepHeader(5, "Checking for country/region selection")
 
     let countrySelected = false
     let retryCount = 0
@@ -421,14 +421,14 @@ export class VerificationHandler {
         await this.proxyAwareDelay(1000 + retryCount * 300) // Reduced initial delay
 
         const countrySelectors = [
-          "#area", // ✅ WORKING SELECTOR - Found and used for country selection
+          "#area", // WORKING SELECTOR - Found and used for country selection
         ]
 
         for (const selector of countrySelectors) {
           try {
             const countryElement = await this.page.$(selector)
             if (countryElement) {
-              logger.info(`Found country/region selector: ${selector}`)
+              logger.info(`Found country/region selector: ${colors.cyan(selector)}`)
 
               const selectionCheck = await this.page.evaluate(() => {
                 const selectedElements = document.querySelectorAll(
@@ -725,7 +725,7 @@ export class VerificationHandler {
             if (!isChecked) {
               await checkbox.click()
               checkboxCount++
-              logger.info(`Checked agreement: ${selector}`)
+              logger.info(`Checked agreement: ${colors.cyan(selector)}`)
               await this.proxyAwareDelay(300)
             }
           }
@@ -761,7 +761,7 @@ export class VerificationHandler {
             if (!isChecked) {
               await checkbox.click()
               checkboxCount++
-              logger.info(`Checked agreement: ${selector}`)
+              logger.info(`Checked agreement: ${colors.cyan(selector)}`)
               await this.proxyAwareDelay(300)
 
               if (!this.config.enableAgeConfirmation) {
@@ -937,7 +937,7 @@ export class VerificationHandler {
         if (finalState) {
           logger.error("CRITICAL: Age confirmation protection failed - checkbox is still checked!")
         } else {
-          logger.info("✅ Age confirmation protection successful - checkbox disabled and unchecked")
+          logger.info("Age confirmation protection successful - checkbox disabled and unchecked")
         }
       } catch (e) {
         logger.error(`Could not apply age confirmation protection: ${e}`)
@@ -972,7 +972,7 @@ export class VerificationHandler {
           })
           logger.warn("Emergency age confirmation uncheck applied")
         } else {
-          logger.info("✅ Final verification: Age confirmation properly unchecked")
+          logger.info("Final verification: Age confirmation properly unchecked")
         }
       } catch (e) {
         logger.error(`Could not perform final age verification: ${e}`)

@@ -43,6 +43,18 @@ export class Logger {
       DEBUG: "\x1b[30m",
     },
     reset: "\x1b[0m",
+    // Additional colors for inline text coloring
+    inline: {
+      red: "\x1b[31m",
+      green: "\x1b[32m",
+      yellow: "\x1b[33m",
+      blue: "\x1b[34m",
+      magenta: "\x1b[35m",
+      cyan: "\x1b[36m",
+      white: "\x1b[37m",
+      bright: "\x1b[1m",
+      dim: "\x1b[2m",
+    },
   }
 
   constructor(config: Partial<LoggerConfig> = {}) {
@@ -159,6 +171,51 @@ export class Logger {
     }
   }
 
+  // Step header with border
+  stepHeader(stepNumber: number, message: string): void {
+    const border = "═".repeat(60)
+    const stepText = ` STEP ${stepNumber}: ${message} `
+    const padding = Math.max(0, border.length - stepText.length)
+    const leftPadding = Math.floor(padding / 2)
+    const rightPadding = padding - leftPadding
+    const paddedStep = "═".repeat(leftPadding) + stepText + "═".repeat(rightPadding)
+
+    this.info(colors.bright(colors.blue(`\n${border}\n${paddedStep}\n${border}\n`)))
+  }
+
+  // Color utility methods for inline text coloring
+  red(text: string): string {
+    return this.config.enableColors ? `${this.colors.inline.red}${text}${this.colors.reset}` : text
+  }
+
+  green(text: string): string {
+    return this.config.enableColors ? `${this.colors.inline.green}${text}${this.colors.reset}` : text
+  }
+
+  yellow(text: string): string {
+    return this.config.enableColors ? `${this.colors.inline.yellow}${text}${this.colors.reset}` : text
+  }
+
+  blue(text: string): string {
+    return this.config.enableColors ? `${this.colors.inline.blue}${text}${this.colors.reset}` : text
+  }
+
+  magenta(text: string): string {
+    return this.config.enableColors ? `${this.colors.inline.magenta}${text}${this.colors.reset}` : text
+  }
+
+  cyan(text: string): string {
+    return this.config.enableColors ? `${this.colors.inline.cyan}${text}${this.colors.reset}` : text
+  }
+
+  bright(text: string): string {
+    return this.config.enableColors ? `${this.colors.inline.bright}${text}${this.colors.reset}` : text
+  }
+
+  dim(text: string): string {
+    return this.config.enableColors ? `${this.colors.inline.dim}${text}${this.colors.reset}` : text
+  }
+
   updateConfig(newConfig: Partial<LoggerConfig>): void {
     this.config = { ...this.config, ...newConfig }
 
@@ -183,6 +240,43 @@ export let logger = new Logger({
   logFilePath: "logs/bot.log",
   enableColors: true,
 })
+
+// Export color utility functions
+export const colors = {
+  red: (text: string) => `\x1b[31m${text}\x1b[0m`,
+  green: (text: string) => `\x1b[32m${text}\x1b[0m`,
+  yellow: (text: string) => `\x1b[33m${text}\x1b[0m`,
+  blue: (text: string) => `\x1b[34m${text}\x1b[0m`,
+  magenta: (text: string) => `\x1b[35m${text}\x1b[0m`,
+  cyan: (text: string) => `\x1b[36m${text}\x1b[0m`,
+  white: (text: string) => `\x1b[37m${text}\x1b[0m`,
+  bright: (text: string) => `\x1b[1m${text}\x1b[0m`,
+  dim: (text: string) => `\x1b[2m${text}\x1b[0m`,
+  stepHeader: (stepNumber: number, message: string) => {
+    const width = 91 // Terminal width
+    const arrow = colors.bright(colors.green("➤"))
+    const stepText = colors.bright(colors.white(`STEP ${stepNumber}: ${message}`))
+    const line = colors.dim(colors.blue("─".repeat(width - 2)))
+    const padding = Math.max(0, width - 2 - `➤ STEP ${stepNumber}: ${message}`.length)
+    const leftPadding = Math.floor(padding / 2)
+    const rightPadding = padding - leftPadding
+    const centeredContent = " ".repeat(leftPadding) + `${arrow} ${stepText}` + " ".repeat(rightPadding)
+
+    console.log(`\n${line}\n${centeredContent}\n${line}\n`)
+  },
+  sessionHeader: (sessionNumber: number) => {
+    const width = 91 // Terminal width
+    const topBorder = colors.bright(colors.cyan("╔" + "═".repeat(width - 2) + "╗"))
+    const sessionText = colors.bright(colors.yellow(`🚀 SESSION ${sessionNumber} 🚀`))
+    const padding = Math.max(0, width - 2 - `🚀 SESSION ${sessionNumber} 🚀`.length)
+    const leftPadding = Math.floor(padding / 2)
+    const rightPadding = padding - leftPadding
+    const centeredSession = "║" + " ".repeat(leftPadding) + `🚀 SESSION ${sessionNumber} 🚀` + " ".repeat(rightPadding) + "║"
+    const bottomBorder = colors.bright(colors.cyan("╚" + "═".repeat(width - 2) + "╝"))
+
+    console.log(`\n${topBorder}\n${colors.bright(colors.yellow(centeredSession))}\n${bottomBorder}\n`)
+  },
+}
 
 export function initializeLogger(config: {
   debugMode: boolean

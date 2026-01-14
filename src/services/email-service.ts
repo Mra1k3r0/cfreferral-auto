@@ -1,5 +1,5 @@
 import axios, { type AxiosResponse } from "axios"
-import { logger } from "../utils/logger"
+import { logger, colors } from "../utils/logger"
 import { generateHumanUsername } from "../utils/helpers"
 import type { TempEmailAccount, GetEmailListResponse } from "../types"
 
@@ -26,7 +26,7 @@ export class EmailService {
    * @throws Error if email creation fails
    */
   async createTempEmail(): Promise<TempEmailAccount> {
-    logger.info("📧 Creating temporary email account...")
+    logger.info("Creating temporary email account...")
 
     const username = generateHumanUsername()
 
@@ -48,13 +48,13 @@ export class EmailService {
         // Extract domain from email address (API decides the domain)
         const emailParts = account.email_addr.split("@")
         this.currentDomain = emailParts.length > 1 ? emailParts[1] : "guerrillamail.com"
-        logger.info(`✅ Temp email created: ${account.email_addr}`)
+        logger.info(`Temp email created: ${colors.green(account.email_addr)}`)
         return account
       } else {
         throw new Error("Failed to create temp email account - invalid response")
       }
     } catch (error) {
-      logger.error(`❌ Failed to create temp email: ${error}`)
+      logger.error(`Failed to create temp email: ${error}`)
       throw error
     }
   }
@@ -66,7 +66,7 @@ export class EmailService {
    */
   async getVerificationCode(): Promise<string | null> {
     if (!this.tempEmailAccount) {
-      logger.error("❌ No temp email account available")
+      logger.error("No temp email account available")
       return null
     }
 
@@ -89,15 +89,15 @@ export class EmailService {
       if (response.data.list && response.data.list.length > 0) {
         for (const email of response.data.list) {
           if (this.isVerificationEmail(email)) {
-            logger.info(`📧 Found verification email: ${email.mail_subject}`)
+            logger.info(`Found verification email: ${colors.green(email.mail_subject)}`)
             logger.debug(`📄 Email excerpt: ${email.mail_excerpt}`)
 
             const code = this.extractVerificationCode(email)
             if (code) {
-              logger.success(`🔢 Extracted verification code: ${code}`)
+              logger.success(`Extracted verification code: ${colors.green(code)}`)
               return code
             } else {
-              logger.warn("⚠️  Could not extract code from email content")
+              logger.warn("Could not extract code from email content")
             }
           }
         }
@@ -106,7 +106,7 @@ export class EmailService {
       logger.debug("No verification email found yet, will retry...")
       return null
     } catch (error) {
-      logger.error(`❌ Failed to check emails: ${error}`)
+      logger.error(`Failed to check emails: ${error}`)
       return null
     }
   }

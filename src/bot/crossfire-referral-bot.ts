@@ -6,7 +6,7 @@ declare var navigator: any
 
 import puppeteer, { type Browser, type Page } from "puppeteer-core"
 import type { RegistrationConfig, ProxyInfo } from "../types"
-import { logger } from "../utils/logger"
+import { logger, colors } from "../utils/logger"
 import { delay, saveSuccessfulAccount } from "../utils/helpers"
 import { loadConfig } from "../config"
 import { EmailService } from "../services/email-service"
@@ -56,7 +56,7 @@ export class CrossfireReferralBot {
     logger.debug(`Proxy config check - useProxy: ${this.config.useProxy}, proxyFile: ${this.config.proxyFile}`)
     if (this.config.useProxy && this.config.useProxy > 0) {
       logger.debug(`Initializing proxy manager with type: ${this.config.useProxy}`)
-      logger.info(`🔧 Initializing proxy system...`)
+      logger.info(`Initializing proxy system...`)
       this.proxyManager = new ProxyManager({
         proxyType: this.config.useProxy,
         proxyFile: this.config.proxyFile,
@@ -68,9 +68,10 @@ export class CrossfireReferralBot {
         verbose: this.config.debugMode,
       })
       logger.debug(`Proxy manager initialized, proxy count: ${this.proxyManager.getProxyCount()}`)
-      logger.info(`✅ Proxy system initialized with ${this.proxyManager.getProxyCount()} proxies`)
+      logger.info(`Proxy system initialized with ${this.proxyManager.getProxyCount()} proxies`)
     } else {
-      logger.warn(`Proxy not enabled - useProxy: ${this.config.useProxy}`)
+      logger.info(`Proxy not enabled - useProxy: ${this.config.useProxy}`)
+      logger.info("Using direct connection")
     }
   }
 
@@ -144,14 +145,14 @@ export class CrossfireReferralBot {
       delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
     `)
 
-    logger.debug("🛡️ Anti-detection measures applied")
+    logger.debug("Anti-detection measures applied")
   }
 
   private async detectBrowserExecutable(): Promise<string | undefined> {
     const { execSync } = require("child_process")
     const fs = require("fs")
 
-    logger.info("🔍 Searching for browser...")
+    logger.info("Searching for browser...")
 
     const isWindows = process.platform === "win32"
 
@@ -178,7 +179,7 @@ export class CrossfireReferralBot {
         const browserName = this.getBrowserName(browserPath)
         const version = await this.getBrowserVersion(browserPath)
         const versionInfo = version ? ` v${version}` : ` (version unknown)`
-        logger.info(`Found browser: ${browserName}${versionInfo}`)
+        logger.info(`Found browser: ${colors.cyan(`${browserName}${versionInfo}`)}`)
         return browserPath
       } catch {}
     }
@@ -193,7 +194,7 @@ export class CrossfireReferralBot {
           }).trim()
           if (path) {
             const browserName = this.getBrowserName(path)
-            logger.success(`Found browser: ${browserName}`)
+            logger.success(`Found browser: ${colors.cyan(browserName)}`)
             return path
           }
         } catch {}
@@ -330,7 +331,7 @@ export class CrossfireReferralBot {
 
     if (this.config.enableSecureConnection || this.config.enableClientCertificates) {
       logger.info(
-        `🔐 Security config: enableSecureConnection=${this.config.enableSecureConnection}, enableClientCertificates=${this.config.enableClientCertificates}`,
+        `Security config: enableSecureConnection=${this.config.enableSecureConnection}, enableClientCertificates=${this.config.enableClientCertificates}`,
       )
 
       if (this.config.enableSecureConnection) {
@@ -345,7 +346,7 @@ export class CrossfireReferralBot {
             minTlsVersion: "TLSv1.2",
           })
 
-          logger.success("🔐 Secure connection manager initialized for all connections")
+          logger.success("Secure connection manager initialized for all connections")
         } catch (error) {
           logger.error(`Failed to initialize secure connection manager: ${error}`)
           this.secureConnectionManager = null
@@ -384,12 +385,12 @@ export class CrossfireReferralBot {
         })
 
         this.localProxyServer.on("proxy-banned", () => {
-          logger.warn(`⚠️  Proxy authentication failed (403) - will retry without proxy`)
+          logger.warn(`Proxy authentication failed (403) - will retry without proxy`)
           this.currentWorkingProxy = null
         })
 
         this.localProxyServer.on("proxy-connection-refused", () => {
-          logger.warn(`⚠️  Proxy connection refused - will retry without proxy`)
+          logger.warn(`Proxy connection refused - will retry without proxy`)
           this.currentWorkingProxy = null
         })
 
@@ -414,12 +415,12 @@ export class CrossfireReferralBot {
           })
 
           this.localProxyServer.on("proxy-banned", () => {
-            logger.warn(`⚠️  SOCKS proxy authentication failed (403) - will retry without proxy`)
+            logger.warn(`SOCKS proxy authentication failed (403) - will retry without proxy`)
             this.currentWorkingProxy = null
           })
 
           this.localProxyServer.on("proxy-connection-refused", () => {
-            logger.warn(`⚠️  SOCKS proxy connection refused - will retry without proxy`)
+            logger.warn(`SOCKS proxy connection refused - will retry without proxy`)
             this.currentWorkingProxy = null
           })
 
@@ -458,23 +459,23 @@ export class CrossfireReferralBot {
         const secureOptions = this.secureConnectionManager.getPuppeteerLaunchOptions()
         if (secureOptions && secureOptions.args && secureOptions.args.length > 0) {
           launchOptions.args = [...(launchOptions.args || []), ...secureOptions.args]
-          logger.debug(`🔐 Applied ${secureOptions.args.length} security arguments to browser launch`)
+          logger.debug(`Applied ${secureOptions.args.length} security arguments to browser launch`)
         } else {
-          logger.debug("🔐 No additional security arguments to apply")
+          logger.debug("No additional security arguments to apply")
         }
       } catch (error) {
         logger.error(`Failed to apply secure connection options: ${error}`)
       }
     } else {
-      logger.debug("🔐 Secure connection manager not available for browser launch")
+      logger.debug("Secure connection manager not available for browser launch")
     }
 
-    logger.debug(`🚀 Browser launch: ${launchOptions.args?.length || 0} args, headless=${launchOptions.headless}`)
+    logger.debug(`Browser launch: ${launchOptions.args?.length || 0} args, headless=${launchOptions.headless}`)
     if (this.config.useProxy > 0) {
       if (launchOptions.args?.some((arg: string) => arg.includes("proxy-server"))) {
-        logger.debug(`✅ Proxy configured in launch args`)
+        logger.debug(`Proxy configured in launch args`)
       } else {
-        logger.warn(`⚠️  No proxy-server found in launch args`)
+        logger.warn(`No proxy-server found in launch args`)
       }
     }
 
@@ -498,7 +499,7 @@ export class CrossfireReferralBot {
         message.toLowerCase().includes("passing the flame")
 
       if (isFlameDialog) {
-        logger.super("✅ Success: Invitation Accepted")
+        logger.super(logger.green("Success: Invitation Accepted"))
         logger.debug("Flame dialog detected - account creation successful!")
       }
 
@@ -547,17 +548,17 @@ export class CrossfireReferralBot {
               logger.debug("⚛️  Quantum proxy initialized - proxy conserved for target site only")
               this.quantumProxyManager!.startKeepAlive()
             } else {
-              logger.warn("⚠️  Quantum proxy initialization failed, using standard proxy")
+              logger.warn("Quantum proxy initialization failed, using standard proxy")
             }
           })
           .catch((error) => {
-            logger.warn(`⚠️  Quantum proxy error: ${error}`)
+            logger.warn(`Quantum proxy error: ${error}`)
           })
       } else if (
         currentProxy &&
         (currentProxy.host.includes("scrapeops") || currentProxy.host.includes("residential-proxy"))
       ) {
-        logger.debug("ℹ️  Using residential proxy - Quantum proxy manager skipped for compatibility")
+        logger.debug("Using residential proxy - Quantum proxy manager skipped for compatibility")
       }
     }
 
@@ -621,9 +622,9 @@ export class CrossfireReferralBot {
       const isTimeout = errorMessage.includes("timeout") || errorMessage.includes("ETIMEDOUT")
 
       if (isTimeout && this.currentWorkingProxy && !isConnectionError) {
-        logger.warn(`⚠️  Navigation timeout with proxy (proxy might be slow). Will retry with longer timeout...`)
+        logger.warn(`Navigation timeout with proxy (proxy might be slow). Will retry with longer timeout...`)
       } else if (isConnectionError && this.currentWorkingProxy) {
-        logger.warn(`⚠️  Proxy connection failed during initial navigation: ${errorMessage.substring(0, 100)}`)
+        logger.warn(`Proxy connection failed during initial navigation: ${errorMessage.substring(0, 100)}`)
         if (this.currentWorkingProxy.username && this.currentWorkingProxy.password) {
           logger.warn(`   Authenticated proxy failed - credentials may be invalid or proxy is blocked`)
         } else {
@@ -660,7 +661,7 @@ export class CrossfireReferralBot {
           logger.success("Page loaded successfully without proxy")
           return
         } catch (directError) {
-          logger.error("Navigation failed even without proxy")
+          logger.error(colors.red("Navigation failed even without proxy"))
           throw directError
         }
       }
@@ -686,9 +687,9 @@ export class CrossfireReferralBot {
 
         if (isProxyError && this.currentWorkingProxy) {
           if (errorMessage.includes("ERR_NO_SUPPORTED_PROXIES")) {
-            logger.warn(`⚠️  Chrome doesn't support authenticated SOCKS5 proxies. Restarting browser without proxy...`)
+            logger.warn(`Chrome doesn't support authenticated SOCKS5 proxies. Restarting browser without proxy...`)
           } else {
-            logger.warn(`⚠️  Proxy connection failed. Restarting browser without proxy...`)
+            logger.warn(`Proxy connection failed. Restarting browser without proxy...`)
           }
 
           if (this.localProxyServer) {
@@ -764,7 +765,7 @@ export class CrossfireReferralBot {
     if (!this.page) throw new Error("Browser not initialized")
 
     logger.info("Starting registration process...")
-    const registrationHandler = new RegistrationHandler(this.page, this.proxyManager, this.currentEmail, this.config)
+    const registrationHandler = new RegistrationHandler(this.page, this.proxyManager, this.currentEmail, this.sessionPassword, this.config)
 
     try {
       logger.debug("Waiting for login button to appear...")
@@ -833,7 +834,7 @@ export class CrossfireReferralBot {
       logger.debug("Checking for post-registration alerts...")
       await this.handlePostRegistrationAlerts()
 
-      logger.successForce("Registration process completed")
+      logger.successForce(colors.green("Registration process completed"))
     } catch (error) {
       logger.error(`Error during registration: ${error}`)
       if (this.config.screenshotOnError && this.page && !this.page.isClosed()) {
@@ -863,7 +864,7 @@ export class CrossfireReferralBot {
 
     const verificationHandler = new VerificationHandler(this.page, this.proxyManager, this.emailService, this.config)
     verificationHandler.resetVerificationState()
-    const passwordHandler = new PasswordHandler(this.page, this.proxyManager, this.config)
+    const passwordHandler = new PasswordHandler(this.page, this.proxyManager, this.sessionPassword, this.config)
 
     try {
       logger.debug("Waiting for page transition after form submission...")
@@ -920,7 +921,7 @@ export class CrossfireReferralBot {
       }
 
       if (passwordField) {
-        logger.warn("Password fields appeared prematurely - page may have auto-transitioned")
+        logger.warn(colors.yellow("Password fields appeared prematurely - page may have auto-transitioned"))
         logger.debug("Attempting to return to verification step...")
 
         await this.page.evaluate(() => {
@@ -970,8 +971,8 @@ export class CrossfireReferralBot {
         retryCount++
 
         if (doneClicked) {
-          logger.super("REGISTRATION COMPLETED SUCCESSFULLY!")
-          logger.success(`Account created with email: ${this.currentEmail}`)
+          logger.super(colors.green("REGISTRATION COMPLETED SUCCESSFULLY!"))
+          logger.success(`Account created with email: ${colors.green(this.currentEmail)}`)
           break
         }
 
@@ -1028,8 +1029,8 @@ export class CrossfireReferralBot {
 
       if (registrationSuccessful) {
         if (!doneClicked) {
-          logger.super("REGISTRATION COMPLETED SUCCESSFULLY!")
-          logger.success(`Account created with email: ${this.currentEmail}`)
+          logger.super(colors.green("REGISTRATION COMPLETED SUCCESSFULLY!"))
+          logger.success(`Account created with email: ${colors.green(this.currentEmail)}`)
           logger.info("Registration completed automatically (done button not needed)")
         }
 
@@ -1083,7 +1084,7 @@ export class CrossfireReferralBot {
         if (isFlameDialog) {
           flameDialogAccepted = true
           logger.debug("Flame dialog detected - account creation successful!")
-          logger.super("✅ Success: Invitation Accepted")
+          logger.super(colors.green("Success: Invitation Accepted"))
         }
 
         if (message.includes("Invitation accepted") || message.toLowerCase().includes("invitation accepted")) {
@@ -1105,7 +1106,7 @@ export class CrossfireReferralBot {
             }
 
             // Log the most important success message (using SUPER for unique/rare logs)
-            logger.super("✅ Success: Invitation Accepted")
+            logger.super(colors.green("Success: Invitation Accepted"))
             logger.info("Registration completed successfully!")
           } else if (flameDialogAccepted && invitationDialogHandled && !accountSaved) {
             accountSaved = true
@@ -1117,7 +1118,7 @@ export class CrossfireReferralBot {
             !isFlameDialog &&
             (message.toLowerCase().includes("invitation") || message.toLowerCase().includes("accepted"))
           ) {
-            logger.super("✅ Success: Invitation Accepted")
+            logger.super(colors.green("Success: Invitation Accepted"))
           }
         } catch (acceptError) {
           logger.debug("Dialog was already handled or closed")
@@ -1158,7 +1159,7 @@ export class CrossfireReferralBot {
 
   private async performDirectConnectionSecurityAudit(): Promise<void> {
     try {
-      logger.debug("🔍 Performing enhanced connection security audit...")
+      logger.debug("Performing enhanced connection security audit...")
 
       const targetDomain = "act.playcfl.com"
 
@@ -1197,16 +1198,8 @@ export class CrossfireReferralBot {
       }
 
       // Add connection method info
-      const methodEmojis: Record<string, string> = {
-        direct: "🏠",
-        proxy: "🌐",
-        vpn: "🔒",
-        unknown: "❓",
-      }
-      const methodEmoji = methodEmojis[connectionMethod.method] || "❓"
-
       logger.info(
-        `${methodEmoji} Connection Method: ${connectionMethod.method.toUpperCase()} (${connectionMethod.confidence}% confidence)`,
+        `Connection Method: ${connectionMethod.method.toUpperCase()} (${connectionMethod.confidence}% confidence)`,
       )
       logger.info(`🔒 Security Audit: Score ${securityMetrics.securityScore}/100 (${adjustedRiskLevel} risk)`)
 
@@ -1215,26 +1208,26 @@ export class CrossfireReferralBot {
       }
 
       if (vulnerabilities.length > 0) {
-        logger.warn(`⚠️  Security issues: ${vulnerabilities.join(", ")}`)
+        logger.warn(`Security issues: ${colors.yellow(vulnerabilities.join(", "))}`)
       } else {
-        logger.success("✅ No security vulnerabilities detected")
+        logger.success("No security vulnerabilities detected")
       }
 
       if (securityMetrics.certificateInfo) {
-        logger.debug(`📜 SSL Certificate: ${securityMetrics.certificateInfo.subject}`)
-        logger.debug(`📅 Expires: ${securityMetrics.certificateInfo.validTo.toDateString()}`)
+        logger.debug(`SSL Certificate: ${securityMetrics.certificateInfo.subject}`)
+        logger.debug(`Expires: ${securityMetrics.certificateInfo.validTo.toDateString()}`)
       }
 
       // Log additional insights based on connection method
       if (connectionMethod.method === "proxy") {
-        logger.info("ℹ️  Proxy detected - security analysis reflects proxy exit node, not local connection")
+        logger.info("Proxy detected - security analysis reflects proxy exit node, not local connection")
       } else if (connectionMethod.method === "vpn") {
-        logger.info("ℹ️  VPN detected - security analysis reflects VPN exit node, not local connection")
+        logger.info("VPN detected - security analysis reflects VPN exit node, not local connection")
       } else if (connectionMethod.method === "direct") {
-        logger.info("ℹ️  Direct connection - security analysis reflects your local network")
+        logger.info("Direct connection - security analysis reflects your local network")
       }
     } catch (error) {
-      logger.warn(`⚠️  Enhanced connection security audit failed: ${error}`)
+      logger.warn(`Enhanced connection security audit failed: ${error}`)
     }
   }
 
@@ -1319,18 +1312,25 @@ export class CrossfireReferralBot {
    */
   async run(): Promise<void> {
     try {
-      logger.info("STEP 1: Creating temporary email for this session...")
-      const tempEmail = await this.emailService.createTempEmail()
+      colors.stepHeader(1, "Setting up email for this session")
 
-      if (tempEmail) {
-        this.currentEmail = tempEmail.email_addr
-        logger.success(`Using fresh email: ${this.currentEmail}`)
+      // Check if we should use configured email or generate random
+      if (this.currentEmail && this.currentEmail !== "RND") {
+        // Use the configured email from RegistrationConfig
+        logger.success(`Using configured email: ${this.currentEmail}`)
+      } else {
+        // Generate random GuerrillaMail email
+        const tempEmail = await this.emailService.createTempEmail()
+        if (tempEmail) {
+          this.currentEmail = tempEmail.email_addr
+          logger.success(`Using fresh email: ${this.currentEmail}`)
+        }
       }
 
-      logger.info("STEP 2: Launching fresh browser instance...")
+      colors.stepHeader(2, "Launching fresh browser instance")
       await this.launchFreshBrowser()
 
-      logger.info("STEP 3: Starting registration process...")
+      colors.stepHeader(3, "Starting registration process")
       await this.navigateToReferralPage()
       await this.performRegistration()
 
@@ -1341,7 +1341,7 @@ export class CrossfireReferralBot {
       )
       await delay(finalDelay)
     } catch (error) {
-      logger.error(`Bot execution failed: ${error}`)
+      logger.error(colors.red(`Bot execution failed: ${error}`))
       if (this.config.screenshotOnError && this.page && !this.page.isClosed()) {
         try {
           await this.page.screenshot({ path: "fatal-error.png", fullPage: true })

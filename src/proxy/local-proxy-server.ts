@@ -72,8 +72,8 @@ export class LocalProxyServer extends EventEmitter {
             if (err.code === "ECONNREFUSED") {
               if (!this.hasLoggedConnectionRefused) {
                 this.hasLoggedConnectionRefused = true
-                logger.error(`❌ Proxy connection refused: ${this.targetProxy.host}:${this.targetProxy.port}`)
-                logger.warn(`   ⚠️  Proxy server is not accepting connections. Falling back to direct connection...`)
+                logger.error(`Proxy connection refused: ${this.targetProxy.host}:${this.targetProxy.port}`)
+                logger.warn(`   Proxy server is not accepting connections. Falling back to direct connection...`)
                 this.emit("proxy-connection-refused", { host: this.targetProxy.host, port: this.targetProxy.port })
               }
             } else {
@@ -189,7 +189,7 @@ export class LocalProxyServer extends EventEmitter {
                         if (errorMessage) {
                           logger.error(`   Proxy response: ${errorMessage}`)
                         }
-                        logger.warn(`   ⚠️  Note: ScrapeOps residential proxy may work for HTTP requests but`)
+                        logger.warn(`   Note: ScrapeOps residential proxy may work for HTTP requests but`)
                         logger.warn(`   may block automated browser connections (Puppeteer/Chrome).`)
                         logger.warn(`   This is a known limitation - your credentials are correct.`)
                         logger.warn(`   Falling back to direct connection...`)
@@ -221,8 +221,8 @@ export class LocalProxyServer extends EventEmitter {
             if (err.code === "ECONNREFUSED") {
               if (!this.hasLoggedConnectionRefused) {
                 this.hasLoggedConnectionRefused = true
-                logger.error(`❌ Proxy connection refused: ${this.targetProxy.host}:${this.targetProxy.port}`)
-                logger.warn(`   ⚠️  Possible causes:`)
+                logger.error(`Proxy connection refused: ${this.targetProxy.host}:${this.targetProxy.port}`)
+                logger.warn(`   Possible causes:`)
                 logger.warn(`   - Proxy server is down or offline`)
                 logger.warn(`   - Wrong protocol (try SOCKS5 instead of HTTP)`)
                 logger.warn(`   - Firewall blocking connection`)
@@ -406,9 +406,9 @@ export class LocalProxyServer extends EventEmitter {
                       if (!this.hasLoggedConnectionRefused) {
                         this.hasLoggedConnectionRefused = true
                         logger.error(
-                          `❌ SOCKS5 proxy connection refused: ${this.targetProxy.host}:${this.targetProxy.port}`,
+                          `SOCKS5 proxy connection refused: ${this.targetProxy.host}:${this.targetProxy.port}`,
                         )
-                        logger.warn(`   ⚠️  Possible causes:`)
+                        logger.warn(`   Possible causes:`)
                         logger.warn(`   - Proxy server is down or offline`)
                         logger.warn(`   - Proxy might be HTTP instead of SOCKS5 (try useProxy: 1)`)
                         logger.warn(`   - Wrong protocol or port`)

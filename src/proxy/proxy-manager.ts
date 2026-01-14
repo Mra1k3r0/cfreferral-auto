@@ -407,7 +407,7 @@ export class ProxyManager {
   }
 
   public async getWorkingProxy(): Promise<ProxyInfo | null> {
-    logger.info(`🔍 Selecting working proxy from ${this.proxies.length} available proxies`)
+    logger.info(`Selecting working proxy from ${this.proxies.length} available proxies`)
 
     if (this.proxies.length === 0) {
       logger.warn("No proxies available")

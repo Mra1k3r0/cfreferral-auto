@@ -15,12 +15,14 @@ export class RegistrationHandler {
   private page: Page
   private proxyManager: ProxyManager | null
   private currentEmail: string
+  private sessionPassword: string
   private config: any
 
-  constructor(page: Page, proxyManager: ProxyManager | null, currentEmail: string, config: any) {
+  constructor(page: Page, proxyManager: ProxyManager | null, currentEmail: string, sessionPassword: string, config: any) {
     this.page = page
     this.proxyManager = proxyManager
     this.currentEmail = currentEmail
+    this.sessionPassword = sessionPassword
     this.config = config
   }
 
@@ -87,7 +89,7 @@ export class RegistrationHandler {
     try {
       const element = await this.page.$('input[type="password"]')
       if (element) {
-        await element.type(this.config.levelinfPassword, { delay: 100 })
+        await element.type(this.sessionPassword, { delay: 100 })
         return true
       }
     } catch (e) {

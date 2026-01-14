@@ -15,7 +15,7 @@
 
 import { CrossfireReferralBot } from "./bot/crossfire-referral-bot"
 import { loadConfig } from "./config"
-import { initializeLogger, logger } from "./utils/logger"
+import { initializeLogger, logger, colors } from "./utils/logger"
 import { generateSecurePassword } from "./utils/helpers"
 import { animatedBanner } from "./utils/banner"
 import type { RegistrationConfig } from "./types"
@@ -57,10 +57,13 @@ async function main() {
  * Run bot in single session mode (original behavior)
  */
 async function runSingleSession(botConfig: any) {
-  const sessionPassword = generateSecurePassword()
+  // Use configured password if it's not "RND", otherwise generate random
+  const sessionPassword = (botConfig.levelinfPassword !== "RND" && botConfig.levelinfPassword)
+    ? botConfig.levelinfPassword
+    : generateSecurePassword()
 
   const config: RegistrationConfig = {
-    email: botConfig.levelinfEmail,
+    email: botConfig.levelinfEmail,  // Will be checked in bot.run()
     password: sessionPassword,
     referralCode: botConfig.referralCode,
   }
@@ -104,13 +107,16 @@ async function runContinuousMode(botConfig: any) {
     }
 
     sessionCount++
-    logger.info(`=== SESSION ${sessionCount} ===`)
+    colors.sessionHeader(sessionCount)
 
     try {
-      const sessionPassword = generateSecurePassword()
+      // Use configured password if it's not "RND", otherwise generate random
+      const sessionPassword = (botConfig.levelinfPassword !== "RND" && botConfig.levelinfPassword)
+        ? botConfig.levelinfPassword
+        : generateSecurePassword()
 
       const config: RegistrationConfig = {
-        email: botConfig.levelinfEmail,
+        email: botConfig.levelinfEmail,  // Will be checked in bot.run()
         password: sessionPassword,
         referralCode: botConfig.referralCode,
       }

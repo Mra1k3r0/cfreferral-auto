@@ -84,7 +84,6 @@ Edit `src/config/defaults.ts`:
 ```typescript
 useProxy: 1,        // 0=direct, 1=HTTP file, 2=HTTPS file, 3=SOCKS4, 4=SOCKS5, 5=stable
 proxyFile: "proxy.txt"  // Your proxy list
-enableSecureConnection: false,  // Enable/disable secure connection manager
 ```
 
 ### Adding Proxies
@@ -102,18 +101,16 @@ proxy.provider.com:8080
 
 Set `useProxy: 1` in `src/config/defaults.ts` for HTTP proxies, `useProxy: 4` for SOCKS5, etc.
 
-### Optional Configuration
+### Environment Configuration
 
-The bot automatically generates temporary emails for registration. If you prefer to use your own credentials:
-
-#### Using .env File (Optional)
 Create a `.env` file in the project root:
+
 ```bash
-# Copy and modify this content:
+# Required: Your Crossfire Legends referral code
 REFERRAL_CODE=your-referral-code
 ```
 
-**Note**: The bot automatically generates temp emails. Only create `.env` if you want to use a custom referral code. The `.env` file is automatically ignored by Git for security.
+**Note**: `REFERRAL_CODE` is required for the bot to work. Email and password are randomly generated if not specified.
 
 ### Or Environment Variables
 ```bash
@@ -137,20 +134,29 @@ inactivityTimeout: 300000,      // Stop if no activity for 5 minutes (300000ms)
 
 ## Requirements
 
-- Node.js 16+
-- npm
-- **Browser**: Chromium/Chrome/Firefox (auto-detected)
-- For Android: Termux + Termux-X11 (optional)
+| Component | Version/Requirement | Notes |
+|-----------|-------------------|-------|
+| **Node.js** | 16+ | Required runtime |
+| **npm** | Latest | Package manager |
+| **Browser** | Chromium/Chrome/Firefox | Auto-detected system browser |
+
+### Android Requirements (Optional)
+
+| Component | Version/Requirement | Notes |
+|-----------|-------------------|-------|
+| **Termux** | Latest | Android terminal emulator |
+| **Termux-X11** | Latest | X11 server for GUI apps |
 
 ## Supported Browsers
 
-The bot uses **Puppeteer Core** and automatically detects and configures:
-- **Chromium** (recommended for Termux/Android)
-- **Google Chrome** (Windows/macOS/Linux)
-- **Firefox**
-- Other compatible browsers
+| Browser | Platform | Notes |
+|---------|----------|-------|
+| **Chromium** | All platforms | Recommended for Termux/Android |
+| **Google Chrome** | Windows/macOS/Linux | Excellent performance |
+| **Firefox** | All platforms | Good alternative |
+| **Other** | Compatible browsers | Puppeteer Core compatible |
 
-**Note**: Puppeteer Core requires a system-installed browser and automatically configures the executable path.
+> **Note**: Puppeteer Core automatically detects and configures system-installed browsers.
 
 ## Disclaimer
 

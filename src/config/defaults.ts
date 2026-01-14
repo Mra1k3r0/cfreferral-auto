@@ -7,11 +7,11 @@ import type { Config } from "./index"
 
 export const defaultConfig: Config = {
   /** EMAIL AND PASSWORD */
-  levelinfEmail: "your-email@levelinf.com", // <= Or set LEVELINF_EMAIL in .env
-  levelinfPassword: "TempPass123!", // <= Or set LEVELINF_PASSWORD in .env
+  levelinfEmail: "RND", // <= Random email generated, or set LEVELINF_EMAIL in .env
+  levelinfPassword: "RND", // <= Random password generated, or set LEVELINF_PASSWORD in .env
 
   /** PROXY SETTINGS */
-  useProxy: 0, // <= 0=No proxy, 1=HTTP file, 2=HTTPS file, 3=SOCKS4, 4=SOCKS5, 5=Stable mode
+  useProxy: 1, // <= 0=No proxy, 1=HTTP file, 2=HTTPS file, 3=SOCKS4, 4=SOCKS5, 5=Stable mode
   proxyFile: "proxy.txt",
 
   /** SOCKS PROXY SOURCES */
@@ -22,7 +22,7 @@ export const defaultConfig: Config = {
   proxyTestCount: 10, // <= Reduced to avoid rate limits
   proxyTimeout: 15000,
   proxyMaxConcurrentTests: 5, // <= Reduced to avoid rate limits
-  proxyKeepAliveEnabled: false, // <= Disable to avoid 429 errors
+  proxyKeepAliveEnabled: true, // <= Disable to avoid 429 errors
   proxyKeepAliveInterval: 120000, // <= 2 minutes if enabled
   proxyKeepAliveUrls: ["https://1.1.1.1"],
 

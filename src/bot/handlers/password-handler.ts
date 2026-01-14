@@ -4,7 +4,7 @@
 
 import type { Page } from "puppeteer-core"
 import { delay } from "../../utils/helpers"
-import { logger } from "../../utils/logger"
+import { logger, colors } from "../../utils/logger"
 import type ProxyManager from "../../proxy/proxy-manager"
 
 /* eslint-disable no-var */
@@ -14,11 +14,13 @@ declare var document: any
 export class PasswordHandler {
   private page: Page
   private proxyManager: ProxyManager | null
+  private sessionPassword: string
   private config: any
 
-  constructor(page: Page, proxyManager: ProxyManager | null, config: any) {
+  constructor(page: Page, proxyManager: ProxyManager | null, sessionPassword: string, config: any) {
     this.page = page
     this.proxyManager = proxyManager
+    this.sessionPassword = sessionPassword
     this.config = config
   }
 
@@ -71,7 +73,7 @@ export class PasswordHandler {
   }
 
   async clickContinueButton(): Promise<boolean> {
-    logger.info("STEP 6: Proceeding to password creation page...")
+    colors.stepHeader(6, "Proceeding to password creation page")
 
     const clicked = await this.clickButtonByText("Continue", ["get code", "send code", "resend"])
 
@@ -131,7 +133,7 @@ export class PasswordHandler {
       (await this.page.$("#registerForm_newPassword")) || (await this.page.$('input[placeholder*="New password"]'))
     if (newPasswordInput) {
       await newPasswordInput.click({ clickCount: 3 })
-      await newPasswordInput.type(this.config.levelinfPassword, { delay: 150 })
+      await newPasswordInput.type(this.sessionPassword, { delay: 150 })
       logger.success("Filled new password field")
     }
 
@@ -140,7 +142,7 @@ export class PasswordHandler {
       (await this.page.$("#registerForm_confirmPassword")) || (await this.page.$('input[placeholder*="Confirm"]'))
     if (confirmPasswordInput) {
       await confirmPasswordInput.click({ clickCount: 3 })
-      await confirmPasswordInput.type(this.config.levelinfPassword, { delay: 150 })
+      await confirmPasswordInput.type(this.sessionPassword, { delay: 150 })
       logger.success("Filled confirm password field")
     }
 
