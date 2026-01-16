@@ -48,45 +48,46 @@ export function generateHumanUsername(): string {
 
 /**
  * Generates secure random password meeting Crossfire Legends requirements
- * @returns Password string (8-20 characters) with at least two character groups: letters, digits, special symbols (@#$%^&*~:)
+ * @returns Password string (6-20 characters) with at least two character groups: letters, digits, special symbols (@#$%^&*:)
  */
 export function generateSecurePassword(): string {
-  const length = Math.floor(Math.random() * 13) + 8 // 8-20 characters
-  const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-  const lowercase = "abcdefghijklmnopqrstuvwxyz"
-  const numbers = "0123456789"
-  const symbols = "@#$%^&*~:)" // Only valid symbols for Crossfire Legends
-
-  // Ensure at least 2 groups are used
-  const requiredGroups = Math.floor(Math.random() * 3) + 2 // 2-4 groups
-  const availableGroups = [
-    { name: 'upper', chars: uppercase },
-    { name: 'lower', chars: lowercase },
-    { name: 'digits', chars: numbers },
-    { name: 'symbols', chars: symbols }
+  const groups = [
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    "abcdefghijklmnopqrstuvwxyz",
+    "0123456789",
+    "@#$%^&*:)"
   ]
 
-  // Randomly select required number of groups
-  const selectedGroups = availableGroups
-    .sort(() => Math.random() - 0.5)
-    .slice(0, requiredGroups)
+  const rand = (n: number) => Math.floor(Math.random() * n)
+  const pick = (s: string) => s[rand(s.length)]
 
-  // Start with one character from each required group
-  const password: string[] = []
-  for (const group of selectedGroups) {
-    const char = group.chars[Math.floor(Math.random() * group.chars.length)]
-    password.push(char)
+  const isShortPassword = Math.random() < 0.605
+  const length = isShortPassword ? rand(7) + 6 : rand(8) + 13
+
+  let selected
+  if (isShortPassword) {
+    const shuffled = [...groups].sort(() => Math.random() - 0.5)
+    const [first, ...rest] = shuffled
+
+    // If first group is letters (uppercase/lowercase), ensure second is digits/symbols
+    const isLetters = first === groups[0] || first === groups[1]
+    const second = isLetters
+      ? rest.find(g => g === groups[2] || g === groups[3]) || rest[0]
+      : rest[0]
+
+    selected = [first, second]
+  } else {
+    selected = [...groups].sort(() => Math.random() - 0.5).slice(0, rand(3) + 2)
   }
 
-  // Fill remaining length with any character from selected groups only
-  const allSelectedChars = selectedGroups.map(g => g.chars).join('')
-  for (let i = password.length; i < length; i++) {
-    password.push(allSelectedChars[Math.floor(Math.random() * allSelectedChars.length)])
-  }
+  const chars = selected.join("")
+  const password = [
+    ...selected.map(pick),
+    ...Array.from({ length: length - selected.length }, () => pick(chars))
+  ]
 
-  // Shuffle the password
   for (let i = password.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
+    const j = rand(i + 1)
     ;[password[i], password[j]] = [password[j], password[i]]
   }
 
